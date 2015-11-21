@@ -10,7 +10,7 @@ app.get('/', function (req, res) {
 
 app.get('/addShit', function (req, res) {
     db.connect(function(connection) {
-        var sql = 'SELECT * from users';
+        var sql = 'SELECT title, image1, description1, image2, description2 from posts';
 
         connection.query(sql, function(err, rows, fields) {
             if (!err) {
@@ -18,7 +18,7 @@ app.get('/addShit', function (req, res) {
                 res.send(JSON.stringify(rows));
             }
             else {
-                console.log('Error while performing Query: %s', sql);
+                console.log('Error while performing Query: %s\n%s', sql, err);
                 res.send(err);
             }
         });
