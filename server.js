@@ -18,7 +18,7 @@ app.get('/', function (req, res) {
 });
 
 app.get('/getPolls', function (req, res) {
-    var sql = 'SELECT title, image1, description1, image2, description2 from posts';
+    var sql = 'SELECT id, title, image1, description1, image2, description2 from posts';
 
     connection.query(sql, function(err, rows, fields) {
         if (!err) {
