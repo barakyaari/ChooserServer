@@ -8,7 +8,7 @@ app.get('/', function (req, res) {
 	res.send('Hello World!');
 });
 
-app.get('/addShit', function (req, res) {
+app.get('/getPolls', function (req, res) {
     db.connect(function(connection) {
         var sql = 'SELECT title, image1, description1, image2, description2 from posts';
 
