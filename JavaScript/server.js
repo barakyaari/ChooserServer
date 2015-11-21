@@ -8,20 +8,24 @@ app.get('/', function (req, res) {
 });
 
 app.get('/addShit', function (req, res) {
+
     db.connect(function(connection) {
         connection.query('SELECT * from users', function(err, rows, fields) {
             if (!err) {
                 res.send('result: ' + rows);
             }
             else {
-                console.log('Error while performing Query.');
+                console.log('Error Connecting to the DB.' + err);
+                res.send("Error Connecting to the DB.")
             }
         });
     });
 });
 
-var server = app.listen(8080, function () {
-  var port = server.address().port;
+    var server = app.listen(8080, function () {
+    var port = server.address().port;
 
-  console.log('Example app listening on port %s', port);
+    console.log('Example app listening on port %s', port);
+
 });
+
