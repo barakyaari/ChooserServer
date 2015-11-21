@@ -12,7 +12,6 @@ var connection = mysql.createConnection({
 });
 connection.connect();
 
-
 app.get('/', function (req, res) {
 	res.send('Hello World!');
 });
