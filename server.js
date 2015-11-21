@@ -1,6 +1,5 @@
 var mysql = require('mysql');
 var express = require('express');
-//var db = require('./DBConnector.js');
 var app = express();
 var SERVER_PORT = 8080;
 
@@ -11,6 +10,7 @@ var connection = mysql.createConnection({
     database : 'chooser'
 });
 connection.connect();
+
 
 app.get('/', function (req, res) {
 	res.send('Hello World!');
@@ -27,7 +27,8 @@ app.get('/getPolls', function (req, res) {
             res.send(JSON.stringify(rows));
         }
         else {
-            console.log('Error while performing Query: %s\n%s', sql, err);
+            console.log('Error while performing Query: %s', sql);
+            console.log(err);
             res.send(err);
         }
     });
