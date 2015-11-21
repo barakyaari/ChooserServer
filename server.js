@@ -23,6 +23,8 @@ app.get('/getPolls', function (req, res) {
     connection.query(sql, function(err, rows, fields) {
         if (!err) {
             console.log('Request Received');
+
+            res.setHeader('Access-Control-Allow-Origin', '*');
             res.send(JSON.stringify(rows));
         }
         else {
