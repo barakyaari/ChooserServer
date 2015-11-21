@@ -1,7 +1,16 @@
+var mysql = require('mysql');
 var express = require('express');
-var db = require('./DBConnector.js');
+//var db = require('./DBConnector.js');
 var app = express();
 var SERVER_PORT = 8080;
+
+var connection = mysql.createConnection({
+    host     : 'localhost',
+    user     : 'admin',
+    password : 'Nsghvnjac1',
+    database : 'chooser'
+});
+connection.connect();
 
 
 app.get('/', function (req, res) {
@@ -9,19 +18,17 @@ app.get('/', function (req, res) {
 });
 
 app.get('/getPolls', function (req, res) {
-    db.connect(function(connection) {
-        var sql = 'SELECT title, image1, description1, image2, description2 from posts';
+    var sql = 'SELECT title, image1, description1, image2, description2 from posts';
 
-        connection.query(sql, function(err, rows, fields) {
-            if (!err) {
-                console.log('Request Received');
-                res.send(JSON.stringify(rows));
-            }
-            else {
-                console.log('Error while performing Query: %s\n%s', sql, err);
-                res.send(err);
-            }
-        });
+    connection.query(sql, function(err, rows, fields) {
+        if (!err) {
+            console.log('Request Received');
+            res.send(JSON.stringify(rows));
+        }
+        else {
+            console.log('Error while performing Query: %s\n%s', sql, err);
+            res.send(err);
+        }
     });
 });
 

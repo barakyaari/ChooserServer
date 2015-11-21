@@ -9,8 +9,8 @@ var connection = mysql.createConnection({
 var exports = module.exports = {};
 
 // The callback function gets the connection and can use it
-exports.connect = function(callback) {
-    connection.connect();
+exports.getConnection = function(callback) {
+    //connection.connect();
     callback(connection);
-    connection.end();
+    //connection.end();
 }
