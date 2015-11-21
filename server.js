@@ -1,12 +1,25 @@
 var express = require('express');
+var db = require('./DBConnector');
 var app = express();
+
+
+
 
 app.get('/', function (req, res) {
 	res.send('Hello World!');
 });
 
 app.get('/addShit', function (req, res) {
-	res.send('Shit added!!');
+    db.connect(function(connection) {
+        connection.query('SELECT * from users', function(err, rows, fields) {
+            if (!err) {
+                res.send('result: ' + rows);
+            }
+            else {
+                console.log('Error while performing Query.');
+            }
+        });
+    });
 });
 
 var server = app.listen(8080, function () {
