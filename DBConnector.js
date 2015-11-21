@@ -1,4 +1,4 @@
-var mysql      = require('mysql');
+var mysql = require('mysql');
 var connection = mysql.createConnection({
     host     : 'localhost',
     user     : 'admin',
@@ -6,8 +6,10 @@ var connection = mysql.createConnection({
     database : 'chooser'
 });
 
+var exports = module.exports = {};
+
 // The callback function gets the connection and can use it
-exports.connect(callback) {
+exports.connect = function(callback) {
     connection.connect();
     callback(connection);
     connection.end();

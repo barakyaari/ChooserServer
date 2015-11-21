@@ -1,8 +1,6 @@
 var express = require('express');
-var db = require('./DBConnector');
+var db = require('./DBConnector.js');
 var app = express();
-
-
 
 
 app.get('/', function (req, res) {
