@@ -37,15 +37,15 @@ app.get('/getPosts', function (req, res) {
     });
 });
 
-app.get('/getAllPosts', function (req, res) {
-    var sql = 'SELECT id, title, image1, description1, image2, description2 from posts_with_mediumblob';
+app.post('/getAllPosts', rawBody, function (req, res) {
     console.log('Request Received at: /getAllPosts');
+
+    var sql = 'SELECT id, title, image1, description1, image2, description2 from posts_with_mediumblob';
 
     connection.query(sql, function(err, rows, fields) {
         if (!err) {
             var result = [];
             for (var i = 0; i < rows.length; i++) {
-                var row = [];
                 var title = rows[i]['title'];
                 var description1 = rows[i]['description1'];
                 var description2 = rows[i]['description2'];
@@ -77,22 +77,30 @@ app.get('/getAllPosts', function (req, res) {
     });
 });
 
-app.post('/deletePost', function (req, res) {
-    res.setHeader('Access-Control-Allow-Origin', '*');
-    console.log("Delete request received");
-    console.log(req.query.id);
-    var idToDelete = req.query.id;
-    var sql = "'DELETE FROM posts WHERE posts.id = " + idToDelete + "'";
-    console.log(sql);
-    connection.query(
-        'DELETE FROM posts WHERE id = ?',
-        [idToDelete],
-        function (err, result) {
-            if (err) throw err;
+app.post('/deletePost', rawBody, function (req, res) {
+    if (req.rawBody && req.bodyLength > 0) {
+        console.log(req.bodyLength);
+        //Parse the JSON from binary:
+        var rawJson = req.rawBody;
+        var jsonBuffer = new Buffer(rawJson, "binary");
+        var json = JSON.parse(jsonBuffer);
 
-            console.log('Deleted ' + result.affectedRows + ' rows');
-        }
-    );
+        var id = json['id'];
+        res.setHeader('Access-Control-Allow-Origin', '*');
+        console.log("Delete request received");
+        console.log(req.query.id);
+        var idToDelete = req.query.id;
+        var sql = "DELETE FROM posts_with_mediumblob WHERE id = " + id ;
+        console.log(sql);
+        connection.query(
+            sql,
+            function (err, result) {
+                if (err) throw err;
+                console.log('Deleted ' + result.affectedRows + ' rows');
+                res.send('Deleted');
+            }
+        );
+    }
 });
 
 app.get('/addPost', function (req, res) {
@@ -121,6 +129,47 @@ app.get('/addPost', function (req, res) {
     });
 });
 
+app.post('/login', rawBody, function (req, res) {
+    console.log("Login Request received.");
+    if (req.rawBody && req.bodyLength > 0) {
+        console.log(req.bodyLength);
+        //Parse the JSON from binary:
+        var rawJson = req.rawBody;
+        var jsonBuffer = new Buffer(rawJson, "binary");
+        var json = JSON.parse(jsonBuffer);
+
+        var username = json['username'];
+        var password = json['password'];
+
+        var sql = "select id from users where" +
+            " username = '" + username + "' and password = '" + password + "'";
+
+        console.log("Got SQL Query");
+        connection.query(sql, function (err, rows, fields) {
+            if (!err) {
+                if(rows.length == 1) {
+                    var id = rows[0]['id'];
+                    res.setHeader('Access-Control-Allow-Origin', '*');
+                    res.contentType('application/json');
+                    console.log("Sending result: " + id);
+                    res.send(String(id));
+                }
+                else{
+                    console.log("Wrong username/password");
+                    res.send('-1');
+
+                }
+            }
+            else {
+                console.log('Error while performing Query: %s', sql);
+                console.log(err);
+                res.send(-1);
+            }
+
+        });
+    }
+});
+
 function rawBody(req, res, next) {
     var chunks = [];
 
@@ -142,8 +191,6 @@ function rawBody(req, res, next) {
     });
 }
 
-
-
 app.post('/addPostWithBlob', rawBody, function (req, res){
     if (req.rawBody && req.bodyLength > 0) {
         console.log(req.bodyLength);
@@ -151,15 +198,16 @@ app.post('/addPostWithBlob', rawBody, function (req, res){
         var rawJson = req.rawBody;
         var jsonBuffer = new Buffer(rawJson, "binary");
         var json = JSON.parse(jsonBuffer);
-
+        var user_id = json['user_id'];
         var title = json['title'];
         var image1Base64 = json['image1'];
         var image2Base64 = json['image2'];
         var description1 = json['description1'];
         var description2 = json['description1'];
 
-        var sql = "INSERT INTO posts_with_mediumblob (title, image1, description1, image2, description2, upload_time)" +
+        var sql = "INSERT INTO posts_with_mediumblob (user_id, title, image1, description1, image2, description2, upload_time)" +
             " VALUES ('"
+            + user_id + "', '"
             + title + "', '"
             + image1Base64 + "', '"
             + description1 + "', '"
@@ -199,3 +247,4 @@ var server = app.listen(SERVER_PORT, function () {
 
     console.log('Listening on port %s', port);
 });
+
