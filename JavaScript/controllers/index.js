@@ -1,4 +1,14 @@
+var mysql = require('mysql');
+
 module.exports.set = function(app) {
+
+    var connection = mysql.createConnection({
+        host     : 'localhost',
+        user     : 'admin',
+        password : 'Nsghvnjac1',
+        database : 'chooser'
+    });
+    connection.connect();
 
     function rawBody(req, res, next) {
         var chunks = [];
@@ -64,7 +74,7 @@ module.exports.set = function(app) {
             var image1Base64 = json['image1'];
             var image2Base64 = json['image2'];
             var description1 = json['description1'];
-            var description2 = json['description1'];
+            var description2 = json['description2'];
 
             var sql = "INSERT INTO posts_with_mediumblob (user_id, title, image1, description1, image2, description2, upload_time)" +
                 " VALUES ('"
