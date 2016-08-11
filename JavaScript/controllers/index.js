@@ -327,7 +327,7 @@ module.exports.set = function(app) {
             var json = JSON.parse(jsonBuffer);
             var uID = json['uID'];
 
-            var sql =   "SELECT id, title, image1, description1, image2, description2, votes1, votes2, upload_time " +
+            var sql =   "SELECT id, title, image1, description1, image2, description2, votes1, votes2, DATE_FORMAT(upload_time,'%Y.%m.%d %H:%i:%s') as upload_time, DATE_FORMAT(promotion_expiration,'%Y.%m.%d %H:%i:%s') as promotion_expiration " +
                         "FROM posts_with_mediumblob WHERE user_id = '" + uID + "'";
 
             connection.query(sql, function (err, rows, fields) {
@@ -342,9 +342,12 @@ module.exports.set = function(app) {
                         var image2Buffer = rows[i]['image2'];
                         var image2Base64 = image2Buffer.toString('utf-8');
                         var date = rows[i]['upload_time'];
+                        var promExp = rows[i]['promotion_expiration'];
                         var votes1 = rows[i]['votes1'];
                         var votes2 = rows[i]['votes2'];
                         var id = rows[i]['id'];
+
+                        console.log("PROMOTION EXPIRATION:" + promExp);
 
                         result.push({
                             'title': title,
@@ -355,7 +358,8 @@ module.exports.set = function(app) {
                             'id': id,
                             'votes1': votes1,
                             'votes2': votes2,
-                            'date': date
+                            'date': date,
+                            'promotion_expiration': promExp
                         })
                     }
                     res.contentType('application/json');
