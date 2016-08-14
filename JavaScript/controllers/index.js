@@ -170,6 +170,88 @@ module.exports.set = function(app) {
         }
     });
 
+
+
+    app.post('/addPromotion', rawBody, function (req, res){
+        console.log("ADD PROMOTION REQUEST RECEIVED");
+        if (req.rawBody && req.bodyLength > 0) {
+            console.log(req.bodyLength);
+            //Parse the JSON from binary:
+            var rawJson = req.rawBody;
+            var jsonBuffer = new Buffer(rawJson, "binary");
+            var json = JSON.parse(jsonBuffer);
+            var user_id = json['user_id'];
+            var post_id = json['post_id'];
+            var promotionDuration = json['promotionDuration'];
+            var promotionTime = json['promotionTime'];
+            console.log("USERID: " +  user_id);
+            var price;
+            switch(promotionTime) {
+                case "MINUTE":
+                    price = parseInt(promotionDuration)*50;
+                    break;
+                case "HOUR":
+                    price = 700+1800*parseInt(promotionDuration);
+                    break;
+                case "DAY":
+                    price = 11200+28800*parseInt(promotionDuration);
+                    break;
+                default:
+                    price = 0;
+            }
+
+            var sql = "SELECT Tokens FROM users " +
+                "WHERE ID = " + user_id;
+
+            connection.query(sql, function (err, rows, fields) {
+                if (err) {
+                    console.log('Error while performing Query');
+                    res.send(err);
+                    throw err;
+                }
+                var tokens = rows[0]['Tokens'];
+                if (tokens < price) {
+                    //user don't have enough tokens for the selected promotion.
+                        res.send(String(-1));
+                }
+
+                else {
+                    //user have enough tokens
+
+                    var sql = "UPDATE users"
+                        + " SET Tokens = Tokens - " + price
+                        + " WHERE ID = '" + user_id + "';"
+
+                        + " SELECT (@date := promotion_expiration)"
+                        + " FROM chooser.posts_with_mediumblob"
+                        + " WHERE id = '" + post_id + "';"
+
+                        + " SELECT @promotion_date := IF(@date > now(),@date,now()) as promotion_date;"
+
+                        + " UPDATE posts_with_mediumblob"
+                        + " SET promotion_expiration = @promotion_date + INTERVAL " + promotionDuration + " " + promotionTime
+                        + " WHERE ID = '" + post_id + "'; ";
+
+                    console.log("Got SQL Query");
+                    connection.query(sql, function (err, rows, fields) {
+                        if (err) {
+                            console.log('Error while performing Query');
+                            res.send(err);
+                            throw err;
+                        }
+                        res.contentType('application/json');
+                        console.log("Promotion was successfully added");
+                        res.send("1");
+                    });
+                }
+            });
+        }
+        else{
+            console.log("Empty or wrong request received!");
+        }
+    });
+
+
     app.post('/getAllPosts', rawBody, function (req, res) {
         console.log("GET ALL POSTS REQUEST RECEIVED");
 
@@ -216,7 +298,6 @@ module.exports.set = function(app) {
 
 
 
-
     app.post('/getStatistics', rawBody, function (req, res) {
         if (req.rawBody && req.bodyLength <= 0) {
             console.log("Empty or wrong request received!");
@@ -236,22 +317,37 @@ module.exports.set = function(app) {
                     "INNER JOIN users " +
                     "on users.ID = votes.user_id " +
                     "AND votes.post_id = " + post_id + " " +
-                    "GROUP BY users.Gender, votes.vote";
+                    "GROUP BY users.Gender, votes.vote; " +
+
+                    'SELECT DATE_FORMAT(NOW(),\'%Y.%m.%d %H:%i:%s\') as Time; ' +
+
+                    "SELECT votes.vote, year(now()) - year(users.DOB) - (DATE_FORMAT(NOW(), '00-%m-%d') < DATE_FORMAT(users.DOB, '00-%m-%d')) AS age," +
+                    "COUNT(votes.vote) AS SumVotes " +
+                    "FROM votes " +
+                    "INNER JOIN users " +
+                    "on users.ID = votes.user_id " +
+                    "AND votes.post_id = " + post_id + " " +
+                    "GROUP BY votes.vote, age; " +
+
+                    "SELECT DATE_FORMAT(promotion_expiration,'%Y.%m.%d %H:%i:%s') as promotion_expiration FROM chooser.posts_with_mediumblob " +
+                    "WHERE id = " + post_id;
+
+
+
         connection.query(sql, function (err, rows, fields) {
             if (err) {
                 console.log('Error while performing Query: %s', sql);
                 res.send(err);
                 throw err
             }
-            console.log(rows);
             var femaleVotes1 = 0;
             var femaleVotes2 = 0;
             var maleVotes1 = 0;
             var maleVotes2 = 0;
-            for (var i = 0; i < rows.length; i++) {
-                var voteNum = rows[i]['vote'];
-                var voteSum = rows[i]['Votes'];
-                if (rows[i]['Gender'] == "Male") {
+            for (var i = 0; i < rows[0].length; i++) {
+                var voteNum = rows[0][i]['vote'];
+                var voteSum = rows[0][i]['Votes'];
+                if (rows[0][i]['Gender'] == "Male") {
                     if (voteNum == 1)
                         maleVotes1 = voteSum;
                     else
@@ -265,53 +361,37 @@ module.exports.set = function(app) {
 
             }
 
-            var sql = 'SELECT DATE_FORMAT(NOW(),\'%Y.%m.%d %H:%i:%s\') as Time';
-            connection.query(sql, function (err, rows, fields) {
-                if (err) {
-                    console.log('Error while performing Query: %s', sql);
-                    res.send(err);
-                    throw err;
-                }
-                var time = rows[0]['Time'];
-                console.log("Sending result: " + time);
-
-                var sql =   "SELECT votes.vote, year(now()) - year(users.DOB) - (DATE_FORMAT(NOW(), '00-%m-%d') < DATE_FORMAT(users.DOB, '00-%m-%d')) AS age," +
-                            "COUNT(votes.vote) AS SumVotes " +
-                            "FROM votes " +
-                            "INNER JOIN users " +
-                            "on users.ID = votes.user_id " +
-                            "AND votes.post_id = " + post_id + " " +
-                            "GROUP BY votes.vote, age";
-                connection.query(sql, function (err, rows, fields) {
-                    if (err) {
-                        console.log('Error while performing Query: %s', sql);
-                        res.send(err);
-                        throw err
-                    }
+            var time = rows[1][0]['Time'];
+            var promotion_expiration = rows[3][0]['promotion_expiration'];
 
 
-                    result.push({
-                        'maleVotes1': maleVotes1,
-                        'maleVotes2': maleVotes2,
-                        'femaleVotes1': femaleVotes1,
-                        'femaleVotes2': femaleVotes2
-                    });
+            console.log("Current Server Time: " + time);
 
-                    result.push(rows);
+            result.push({
+                'maleVotes1': maleVotes1,
+                'maleVotes2': maleVotes2,
+                'femaleVotes1': femaleVotes1,
+                'femaleVotes2': femaleVotes2
+            });
 
-                    result.push({
-                        'currentTime': time
-                    });
+            result.push(rows[2]);
+
+            result.push({
+                'currentTime': time
+            });
+
+            result.push({
+                'promotion_expiration': promotion_expiration
+            });
 
 
-                    res.contentType('application/json');
-                    console.log("Sending result: " + result);
-                    res.send(JSON.stringify(result));
+            res.contentType('application/json');
+            console.log("Sending result: " + result);
+            res.send(JSON.stringify(result));
 
-                });
             });
         });
-    });
+
 
 
 
@@ -346,8 +426,6 @@ module.exports.set = function(app) {
                         var votes1 = rows[i]['votes1'];
                         var votes2 = rows[i]['votes2'];
                         var id = rows[i]['id'];
-
-                        console.log("PROMOTION EXPIRATION:" + promExp);
 
                         result.push({
                             'title': title,
