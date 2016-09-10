@@ -48,18 +48,14 @@ module.exports.set = function(app) {
 
             var id = json['id'];
             res.setHeader('Access-Control-Allow-Origin', '*');
-            console.log(req.query.id);
 
             var sql =   "DELETE FROM votes WHERE post_id = " + id +" ;" +
                         "DELETE FROM posts_with_mediumblob WHERE id = " + id;
 
-            console.log(sql);
-            connection.query(
-                sql,
-                function (err, result) {
+            connection.query(sql, function (err, result) {
                     if (err)
                         throw err;
-                    console.log('Deleted ' + result.affectedRows + ' rows');
+                    console.log('Post successfully deleted.');
                     res.send('Deleted');
                 }
             );
@@ -126,10 +122,11 @@ module.exports.set = function(app) {
                             res.send(err);
                             throw err;
                         }
+                        var post_id = rows['insertId'];
 
                         res.contentType('application/json');
-                        console.log("Post was successfully added. Token Count: "+ tokens);
-                        res.send(String(tokens));
+                        console.log("Post was successfully added. Token Count: "+ tokens + " Post id: " + post_id);
+                        res.send(String(post_id));
                     });
                 }
 
@@ -158,9 +155,12 @@ module.exports.set = function(app) {
                             res.send(err);
                             throw err;
                         }
+
+                        var post_id = rows['insertId'];
+
                         res.contentType('application/json');
-                        console.log("Post with promotion was successfully added");
-                        res.send("1");
+                        console.log("Post with promotion was successfully added. Post id: "+ post_id);
+                        res.send(String(post_id));
                     });
                 }
             });
@@ -518,6 +518,39 @@ module.exports.set = function(app) {
                 res.contentType('application/json');
                 console.log("Token Count: "+ tokens);
                 res.send(String(tokens));
+
+            });
+        }
+        else {
+            console.log("Empty or wrong request received!");
+        }
+    });
+
+    app.post('/getTotalVotes', rawBody, function (req, res) {
+        console.log("GET VOTES REQUEST RECEIVED.");
+        if (req.rawBody && req.bodyLength > 0) {
+            console.log(req.bodyLength);
+            var rawJson = req.rawBody;
+            var jsonBuffer = new Buffer(rawJson, "binary");
+            var json = JSON.parse(jsonBuffer);
+            var post_id = json['post_id'];
+            console.log("Received Post ID: " + post_id);
+
+            var sql =
+                "SELECT votes1 + votes2 as Votes FROM chooser.posts_with_mediumblob " +
+                "WHERE ID = " + post_id;
+
+            connection.query(sql, function (err, result) {
+                if (err) {
+                    console.log(err);
+                    res.send("-1");
+                    return;
+                }
+
+                var votes = result[0]['Votes'];
+                res.contentType('application/json');
+                console.log("Total Vote Count: "+ votes);
+                res.send(String(votes));
 
             });
         }
