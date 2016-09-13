@@ -457,6 +457,67 @@ module.exports.set = function(app) {
     });
 
 
+
+    app.post('/getMyPost', rawBody, function (req, res) {
+        console.log("GET MY POST REQUEST RECEIVED");
+        if (req.rawBody && req.bodyLength > 0) {
+            console.log(req.bodyLength);
+            //Parse the JSON from binary:
+            var rawJson = req.rawBody;
+            var jsonBuffer = new Buffer(rawJson, "binary");
+            var json = JSON.parse(jsonBuffer);
+            var uID = json['uID'];
+            var postID = json['post_id'];
+
+            var sql =   "SELECT id, title, image1, description1, image2, description2, votes1, votes2, DATE_FORMAT(upload_time,'%Y.%m.%d %H:%i:%s') as upload_time, DATE_FORMAT(promotion_expiration,'%Y.%m.%d %H:%i:%s') as promotion_expiration " +
+                "FROM posts_with_mediumblob WHERE user_id = " + uID + " and id = " + postID;
+
+            connection.query(sql, function (err, rows, fields) {
+                if (!err) {
+                    var result = [];
+                    var title = rows[0]['title'];
+                    var description1 = rows[0]['description1'];
+                    var description2 = rows[0]['description2'];
+                    var image1Buffer = rows[0]['image1'];
+                    var image1Base64 = image1Buffer.toString('utf-8');
+                    var image2Buffer = rows[0]['image2'];
+                    var image2Base64 = image2Buffer.toString('utf-8');
+                    var date = rows[0]['upload_time'];
+                    var promExp = rows[0]['promotion_expiration'];
+                    var votes1 = rows[0]['votes1'];
+                    var votes2 = rows[0]['votes2'];
+                    var id = rows[0]['id'];
+
+                    result.push({
+                        'title': title,
+                        'description1': description1,
+                        'description2': description2,
+                        'image1': image1Base64,
+                        'image2': image2Base64,
+                        'id': id,
+                        'votes1': votes1,
+                        'votes2': votes2,
+                        'date': date,
+                        'promotion_expiration': promExp
+                    })
+
+                    res.contentType('application/json');
+                    console.log("Sending result: " + result);
+                    res.send(JSON.stringify(result));
+                }
+                else {
+                    console.log('Error while performing Query: %s', sql);
+                    res.send(err);
+                    throw err;
+                }
+            });
+        }
+        else {
+            console.log("Empty or wrong request received!");
+        }
+    });
+
+
     app.post('/login', rawBody, function (req, res) {
         console.log("LOGIN REQUEST RECEIVED.");
         if (req.rawBody && req.bodyLength > 0) {
@@ -534,11 +595,13 @@ module.exports.set = function(app) {
             var jsonBuffer = new Buffer(rawJson, "binary");
             var json = JSON.parse(jsonBuffer);
             var post_id = json['post_id'];
+            var uID = json['uID'];
+
             console.log("Received Post ID: " + post_id);
 
             var sql =
                 "SELECT votes1 + votes2 as Votes FROM chooser.posts_with_mediumblob " +
-                "WHERE ID = " + post_id;
+                "WHERE user_id = " + uID + " and id = " + post_id;
 
             connection.query(sql, function (err, result) {
                 if (err) {
